@@ -1,5 +1,5 @@
 #include "linear_sequence.h"
-
+#include "stdio.h"
 #define TST(T) ((TypeSequence*)(T))
 #define TIT(T) ((TypeIterator*)(T))
 
@@ -19,10 +19,14 @@ LSQ_HandleT LSQ_CreateSequence(void){
     if( sequence == NULL )
         return NULL;
 
+    size_t t = sizeof (LSQ_BaseTypeT);
+
     sequence->size_ = 0;
     sequence->capacity_ = 10;
     sequence->data_ = (LSQ_BaseTypeT*)calloc((size_t)sequence->capacity_, sizeof (LSQ_BaseTypeT));
-    return (LSQ_HandleT)sequence;
+    if (sequence->data_ == NULL )
+        return NULL;
+    return sequence;
 }
 
 void LSQ_DestroySequence(LSQ_HandleT handle){
@@ -56,14 +60,14 @@ LSQ_BaseTypeT* LSQ_DereferenceIterator(LSQ_IteratorT iterator){
 }
 
 LSQ_IteratorT LSQ_GetElementByIndex(LSQ_HandleT handle, LSQ_IntegerIndexT index){
-    TypeIterator *iterator = (TypeIterator *)calloc(1, sizeof (TypeIterator));
+    TypeIterator *iterator = (TypeIterator *)malloc(sizeof (TypeIterator));
     if(iterator == NULL || handle == LSQ_HandleInvalid)
         return NULL;
 
     iterator->index_ = index;
     iterator->sequence_ = TST(handle);
 
-    return TIT(iterator);
+    return iterator;
 }
 
 LSQ_IteratorT LSQ_GetFrontElement(LSQ_HandleT handle){
@@ -79,65 +83,58 @@ void LSQ_DestroyIterator(LSQ_IteratorT iterator){
     if (iterator == NULL)
         return;
 
-    LSQ_DestroySequence(TIT(iterator)->sequence_);
+    TIT(iterator)->sequence_ = NULL;
     free(iterator);
 }
 
 void LSQ_AdvanceOneElement(LSQ_IteratorT iterator){
     if (iterator == NULL)
         return;
-
-    LSQ_IntegerIndexT newIndex = TIT(iterator)->index_ + 1;
-    if(newIndex <= TIT(iterator)->sequence_->capacity_)
-        TIT(iterator)->index_ = newIndex;
+    TIT(iterator)->index_++;
 }
 
 void LSQ_RewindOneElement(LSQ_IteratorT iterator){
     if (iterator == NULL)
         return;
-
-    LSQ_IntegerIndexT newIndex = TIT(iterator)->index_ + 1;
-    if(newIndex > 0)
-        TIT(iterator)->index_ = newIndex;
+    TIT(iterator)->index_--;
 }
 
 void LSQ_ShiftPosition(LSQ_IteratorT iterator, LSQ_IntegerIndexT shift){
     if (iterator == NULL)
         return;
 
-    LSQ_IntegerIndexT newIndex = TIT(iterator)->index_ + shift;
-    if(newIndex > 0 && newIndex <= TIT(iterator)->sequence_->capacity_)
-        TIT(iterator)->index_ = newIndex;
+    TIT(iterator)->index_ += + shift;
 }
 
 void LSQ_SetPosition(LSQ_IteratorT iterator, LSQ_IntegerIndexT pos){
     if (iterator == NULL)
         return;
 
-    LSQ_IntegerIndexT newIndex = pos;
-    if(newIndex > 0 && newIndex <= TIT(iterator)->sequence_->capacity_)
-        TIT(iterator)->index_ = newIndex;
+    TIT(iterator)->index_ = pos;
 }
 
 void LSQ_InsertFrontElement(LSQ_HandleT handle, LSQ_BaseTypeT element){
     if( handle == LSQ_HandleInvalid )
         return;
 
-    if( TST(handle)->size_ + 1 > TST(handle)->capacity_ ){
-        LSQ_BaseTypeT *newData = (LSQ_BaseTypeT *)realloc(TST(handle)->data_, 2*TST(handle)->capacity_ * sizeof (LSQ_BaseTypeT));
+    TypeSequence *seq = TST(handle);
+
+    if( seq->size_ + 1 > seq->capacity_ ){
+        LSQ_BaseTypeT *newData = (LSQ_BaseTypeT *)realloc(seq->data_, 2*seq->capacity_ * sizeof (LSQ_BaseTypeT));
         if(newData == NULL)
             return;
 
-        TST(handle)->capacity_ = 2*TST(handle)->capacity_;
-        TST(handle)->data_ = newData;
+        seq->capacity_ = 2*seq->capacity_;
+        free(seq->data_);
+        seq->data_ = newData;
     }
 
-    for(LSQ_IntegerIndexT i = TST(handle)->size_; i > 0; --i)
-        TST(handle)->data_[i] = TST(handle)->data_[i - 1];
+    for(LSQ_IntegerIndexT i = seq->size_; i > 0; --i)
+        seq->data_[i] = seq->data_[i - 1];
 
-    ++TST(handle)->size_;
+    ++seq->size_;
 
-    TST(handle)->data_[0] = element;
+    seq->data_[0] = element;
 }
 
 void LSQ_InsertRearElement(LSQ_HandleT handle, LSQ_BaseTypeT element){
@@ -148,6 +145,8 @@ void LSQ_InsertRearElement(LSQ_HandleT handle, LSQ_BaseTypeT element){
         LSQ_BaseTypeT *newData = (LSQ_BaseTypeT *)realloc(TST(handle)->data_, 2*TST(handle)->capacity_ * sizeof (LSQ_BaseTypeT));
         if(newData == NULL)
             return;
+
+        free(TST(handle)->data_);
 
         TST(handle)->capacity_ = 2*TST(handle)->capacity_;
         TST(handle)->data_ = newData;
@@ -168,6 +167,8 @@ void LSQ_InsertElementBeforeGiven(LSQ_IteratorT iterator, LSQ_BaseTypeT newEleme
         TIT(iterator)->sequence_->capacity_ = 2*TIT(iterator)->sequence_->capacity_;
         TIT(iterator)->sequence_->data_ = newData;
     }
+
+    ++TIT(iterator)->sequence_->size_;
 
     for(LSQ_IntegerIndexT i = TIT(iterator)->sequence_->size_; i > TIT(iterator)->index_; --i)
         TIT(iterator)->sequence_->data_[i] = TIT(iterator)->sequence_->data_[i - 1];
