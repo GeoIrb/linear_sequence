@@ -1,1 +1,5 @@
-libContainer.pro.user
+*.user
+*.o
+Makefile
+.qmake.stash
+libContainer
